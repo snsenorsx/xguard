@@ -3,8 +3,8 @@
  * High-performance connection pooling for massive scale RPC cloaker
  */
 
-const { Pool } = require('pg');
-const config = require('../config');
+import { Pool } from 'pg';
+import { config } from '../config';
 
 // Connection pool configurations for different use cases
 const poolConfigurations = {
@@ -156,6 +156,9 @@ function getPoolStats() {
 }
 
 // Connection pool wrapper with automatic retry and circuit breaker
+// Add missing import for QueryStream
+import QueryStream from 'pg-query-stream';
+
 class DatabaseManager {
   constructor() {
     this.circuitBreaker = {
@@ -378,23 +381,23 @@ class DatabaseManager {
 const dbManager = new DatabaseManager();
 
 // Export connection pools and manager
-module.exports = {
+export {
   pools,
   dbManager,
   getPoolStats,
-  
-  // Convenience methods
-  query: (text, params, options) => dbManager.query('main', text, params, options),
-  queryAnalytics: (text, params, options) => dbManager.query('analytics', text, params, options),
-  queryReadonly: (text, params, options) => dbManager.query('readonly', text, params, options),
-  queryTimescale: (text, params, options) => dbManager.query('timescale', text, params, options),
-  
-  transaction: (callback, options) => dbManager.transaction('main', callback, options),
-  bulkInsert: (table, columns, values, options) => dbManager.bulkInsert(table, columns, values, options),
-  
-  healthCheck: () => dbManager.healthCheck(),
-  shutdown: () => dbManager.shutdown(),
 };
+
+// Convenience methods
+export const query = (text: string, params?: any[], options?: any) => dbManager.query('main', text, params, options);
+export const queryAnalytics = (text: string, params?: any[], options?: any) => dbManager.query('analytics', text, params, options);
+export const queryReadonly = (text: string, params?: any[], options?: any) => dbManager.query('readonly', text, params, options);
+export const queryTimescale = (text: string, params?: any[], options?: any) => dbManager.query('timescale', text, params, options);
+
+export const transaction = (callback: any, options?: any) => dbManager.transaction('main', callback, options);
+export const bulkInsert = (table: string, columns: string[], values: any[], options?: any) => dbManager.bulkInsert(table, columns, values, options);
+
+export const healthCheck = () => dbManager.healthCheck();
+export const shutdown = () => dbManager.shutdown();
 
 // Handle process termination
 process.on('SIGINT', dbManager.shutdown);
