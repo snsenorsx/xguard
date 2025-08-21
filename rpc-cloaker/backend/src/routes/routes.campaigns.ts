@@ -185,5 +185,79 @@ export default async function campaignsRoutes(server: FastifyInstance) {
     await db.query('DELETE FROM streams WHERE id = $1 AND campaign_id = $2', [streamId, id]);
     reply.code(204).send();
   });
+
+  // Targeting Rules - list
+  server.get('/:id/streams/:streamId/targeting', async (request, reply) => {
+    const { id, streamId } = request.params as any;
+    const db = getDb();
+    const res = await db.query(
+      `SELECT id, stream_id AS "streamId", rule_type AS "ruleType", operator, value, is_include AS "isInclude",
+              created_at AS "createdAt"
+       FROM targeting_rules WHERE stream_id = $1`,
+      [streamId]
+    );
+    return res.rows;
+  });
+
+  // Targeting Rules - create
+  server.post('/:id/streams/:streamId/targeting', {
+    schema: { body: z.object({
+      ruleType: z.string(),
+      operator: z.string(),
+      value: z.any(),
+      isInclude: z.boolean().default(true),
+    }) as any },
+  }, async (request, reply) => {
+    const { streamId } = request.params as any;
+    const body = request.body as any;
+    const db = getDb();
+    const res = await db.query(
+      `INSERT INTO targeting_rules (stream_id, rule_type, operator, value, is_include)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, stream_id AS "streamId", rule_type AS "ruleType", operator, value, is_include AS "isInclude",
+                 created_at AS "createdAt"`,
+      [streamId, body.ruleType, body.operator, JSON.stringify(body.value), body.isInclude]
+    );
+    reply.code(201).send(res.rows[0]);
+  });
+
+  // Targeting Rules - update
+  server.patch('/:id/streams/:streamId/targeting/:ruleId', {
+    schema: { body: z.object({
+      ruleType: z.string().optional(),
+      operator: z.string().optional(),
+      value: z.any().optional(),
+      isInclude: z.boolean().optional(),
+    }) as any },
+  }, async (request, reply) => {
+    const { streamId, ruleId } = request.params as any;
+    const body = request.body as any;
+    const db = getDb();
+    const fields: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+    if (typeof body.ruleType !== 'undefined') { fields.push(`rule_type = $${idx++}`); values.push(body.ruleType); }
+    if (typeof body.operator !== 'undefined') { fields.push(`operator = $${idx++}`); values.push(body.operator); }
+    if (typeof body.value !== 'undefined') { fields.push(`value = $${idx++}`); values.push(JSON.stringify(body.value)); }
+    if (typeof body.isInclude !== 'undefined') { fields.push(`is_include = $${idx++}`); values.push(body.isInclude); }
+    if (fields.length === 0) return reply.send({});
+    values.push(ruleId, streamId);
+    const res = await db.query(
+      `UPDATE targeting_rules SET ${fields.join(', ')}, created_at = created_at WHERE id = $${idx++} AND stream_id = $${idx}
+       RETURNING id, stream_id AS "streamId", rule_type AS "ruleType", operator, value, is_include AS "isInclude",
+                 created_at AS "createdAt"`,
+      values
+    );
+    if (res.rows.length === 0) return reply.code(404).send({ error: 'Not found' });
+    return res.rows[0];
+  });
+
+  // Targeting Rules - delete
+  server.delete('/:id/streams/:streamId/targeting/:ruleId', async (request, reply) => {
+    const { streamId, ruleId } = request.params as any;
+    const db = getDb();
+    await db.query('DELETE FROM targeting_rules WHERE id = $1 AND stream_id = $2', [ruleId, streamId]);
+    reply.code(204).send();
+  });
 }
 
