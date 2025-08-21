@@ -31,7 +31,37 @@ interface DatabaseInterface {
   query(text: string, params?: any[]): Promise<{ rows: any[] }>;
 }
 
+interface BlacklistCheckResult {
+  isBlacklisted: boolean;
+  reason?: string;
+  expiresAt?: Date;
+}
+
 export class BlacklistService {
+  private static instance: BlacklistService;
+
+  static getInstance(): BlacklistService {
+    if (!this.instance) {
+      const { getDb } = require('../database');
+      const { getRedis } = require('./redis.service');
+      const { getCacheService } = require('./cache.service');
+      
+      this.instance = new BlacklistService(
+        getDb(),
+        getRedis(),
+        getCacheService()
+      );
+    }
+    return this.instance;
+  }
+
+  static async checkIP(ipAddress: string) {
+    return this.getInstance().checkIP(ipAddress);
+  }
+
+  static async healthCheck() {
+    return { status: 'healthy', service: 'blacklist' };
+  }
   private db: DatabaseInterface;
   private redis: Redis;
   private cachePrefix = 'blacklist:';
@@ -41,7 +71,32 @@ export class BlacklistService {
   constructor(db: DatabaseInterface, redis: Redis, cacheService: any) {
     this.db = db;
     this.redis = redis;
-    this.threatIntelligence = getThreatIntelligenceService(cacheService);
+    this.threatIntelligence = getThreatIntelligenceService();
+  }
+
+  /**
+   * Check if IP is blacklisted
+   */
+  async checkIP(ipAddress: string): Promise<BlacklistCheckResult> {
+    const isBlacklisted = await this.isBlacklisted(ipAddress);
+    
+    if (isBlacklisted) {
+      // Get blacklist details
+      const result = await this.db.query(
+        'SELECT reason, expires_at FROM blacklist WHERE ip_address = $1 AND active = true LIMIT 1',
+        [ipAddress]
+      );
+      
+      return {
+        isBlacklisted: true,
+        reason: result.rows[0]?.reason || 'Blacklisted IP',
+        expiresAt: result.rows[0]?.expires_at
+      };
+    }
+    
+    return {
+      isBlacklisted: false
+    };
   }
 
   /**

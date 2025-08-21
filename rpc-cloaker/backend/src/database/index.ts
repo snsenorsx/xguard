@@ -3,7 +3,7 @@ import { config } from '../config';
 import { logger } from '../utils/logger';
 
 // Import high-performance connection pool manager
-const { dbManager, pools } = require('./connection_pool.js');
+import { dbManager, pools } from './connection_pool';
 
 let pool: Pool;
 let timescalePool: Pool;

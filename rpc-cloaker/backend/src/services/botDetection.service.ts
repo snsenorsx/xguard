@@ -2,8 +2,7 @@ import { VisitorInfo } from './cloaker.service';
 import { CacheService } from './redis.service';
 import { config } from '../config';
 import axios from 'axios';
-import { getThreatIntelligenceService } from './threatIntelligence.service';
-import { getCacheService } from './cache.service';
+import { getThreatIntelligenceService } from './threat-intelligence';
 
 export interface BotDetectionResult {
   isBot: boolean;
@@ -20,7 +19,7 @@ export interface BotDetectionResult {
 }
 
 export class BotDetectionService {
-  private threatIntelligence = getThreatIntelligenceService(getCacheService());
+  private threatIntelligence = getThreatIntelligenceService();
   
   private static readonly BOT_USER_AGENTS = [
     'bot', 'crawler', 'spider', 'scraper', 'curl', 'wget',

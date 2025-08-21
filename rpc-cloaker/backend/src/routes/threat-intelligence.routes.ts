@@ -27,7 +27,7 @@ interface ThreatIntelligenceQuery {
 
 export default async function threatIntelligenceRoutes(fastify: FastifyInstance) {
   const cacheService = getCacheService();
-  const threatService = getThreatIntelligenceService(cacheService);
+  const threatService = getThreatIntelligenceService();
 
   // Analyze single IP
   fastify.post<AnalyzeIPRequest>('/analyze', {
@@ -94,7 +94,7 @@ export default async function threatIntelligenceRoutes(fastify: FastifyInstance)
         data: {
           results,
           total: results.length,
-          maliciousCount: results.filter(r => r.isMalicious).length
+          maliciousCount: results.filter((r: any) => r.isMalicious).length
         }
       });
     } catch (error) {
