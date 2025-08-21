@@ -11,8 +11,11 @@ import { RegisterPage } from '@/pages/auth/RegisterPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { CampaignsPage } from '@/pages/campaigns/CampaignsPage'
 import { CampaignDetailPage } from '@/pages/campaigns/CampaignDetailPage'
+import { EditCampaignPage } from '@/pages/campaigns/EditCampaignPage'
 import { AnalyticsPage } from '@/pages/AnalyticsPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import BlacklistPage from '@/pages/BlacklistPage'
+import { ThreatIntelligencePage } from '@/pages/ThreatIntelligencePage'
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage'
 import { TargetingPage } from '@/pages/targeting/TargetingPage'
 
@@ -33,8 +36,11 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/campaigns" element={<CampaignsPage />} />
           <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
+          <Route path="/campaigns/:id/edit" element={<EditCampaignPage />} />
           <Route path="/campaigns/:id/streams/:streamId/targeting" element={<TargetingPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/blacklist" element={<BlacklistPage />} />
+          <Route path="/threat-intelligence" element={<ThreatIntelligencePage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Route>

@@ -2,9 +2,9 @@ import { FastifyInstance } from 'fastify';
 import { CloakerService } from '../services/cloaker.service';
 
 export default async function cloakerRoutes(server: FastifyInstance) {
-  // Process cloaker decision for a campaign by slug
-  server.get('/:slug', async (request, reply) => {
-    const { slug } = request.params as any;
+  // Helper function to process request and send response
+  async function handleCloakerRequest(request: any, reply: any) {
+    const { slug } = request.params;
     const decision = await CloakerService.processRequest(request, slug);
 
     // Apply redirect based on type
@@ -26,6 +26,40 @@ export default async function cloakerRoutes(server: FastifyInstance) {
         reply.code(302).header('Location', decision.redirectUrl).send();
         return;
     }
+  }
+
+  // GET request for standard cloaking
+  server.get('/:slug', handleCloakerRequest);
+
+  // POST request for advanced fingerprinting
+  server.post('/:slug', {
+    schema: {
+      body: {
+        type: 'object',
+        properties: {
+          fingerprint: {
+            type: 'object',
+            properties: {
+              canvas: { type: 'object' },
+              webgl: { type: 'object' },
+              audio: { type: 'object' },
+              screen: { type: 'object' },
+              device: { type: 'object' },
+              environment: { type: 'object' }
+            }
+          }
+        }
+      }
+    }
+  }, handleCloakerRequest);
+
+  // OPTIONS for CORS preflight
+  server.options('/:slug', async (request, reply) => {
+    reply
+      .header('Access-Control-Allow-Origin', '*')
+      .header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+      .header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+      .send();
   });
 }
 

@@ -9,6 +9,7 @@ import {
   Shield,
   Bot,
   Zap,
+  Search,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -33,6 +34,16 @@ const menuItems = [
     title: 'Analytics',
     icon: BarChart3,
     path: '/analytics',
+  },
+  {
+    title: 'Blacklist',
+    icon: Shield,
+    path: '/blacklist',
+  },
+  {
+    title: 'Threat Intel',
+    icon: Search,
+    path: '/threat-intelligence',
   },
   {
     title: 'Settings',

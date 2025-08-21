@@ -12,6 +12,8 @@ export async function initializeRoutes(server: FastifyInstance) {
   await server.register(import('./routes.analytics'), { prefix: '/api/analytics' });
   await server.register(import('./routes.cloaker'), { prefix: '/api/cloaker' });
   await server.register(import('./routes.users'), { prefix: '/api/users' });
+  await server.register(import('./routes.blacklist'), { prefix: '/api' });
+  await server.register(import('./threat-intelligence.routes'), { prefix: '/api/threat-intelligence' });
   
   // WebSocket routes
   await server.register(import('./routes.ws'), { prefix: '/ws' });

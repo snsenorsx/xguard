@@ -5,6 +5,8 @@ import { createHash } from 'crypto';
 import { getDb, getTimescaleDb } from '../database';
 import { CacheService } from './redis.service';
 import { BotDetectionService } from './botDetection.service';
+import { BlacklistService } from './blacklist.service';
+import { getThreatIntelligenceService } from './threatIntelligence.service';
 import { logger } from '../utils/logger';
 
 export interface CloakingDecision {
@@ -24,6 +26,63 @@ export interface VisitorInfo {
   referer?: string;
   headers: Record<string, string>;
   fingerprintHash?: string;
+  
+  // Enhanced fingerprinting data
+  advancedFingerprint?: {
+    canvas?: {
+      hash: string;
+      geometry: string;
+      text: string;
+    };
+    webgl?: {
+      vendor: string;
+      renderer: string;
+      version: string;
+      hash: string;
+      extensions: string[];
+    };
+    audio?: {
+      contextHash: string;
+      compressorHash: string;
+      oscillatorHash: string;
+      sampleRate: number;
+    };
+    screen?: {
+      resolution: string;
+      colorDepth: number;
+      pixelRatio: number;
+      orientation: string;
+    };
+    device?: {
+      hardwareConcurrency: number;
+      maxTouchPoints: number;
+      deviceMemory?: number;
+      connection?: {
+        effectiveType: string;
+        downlink: number;
+        rtt: number;
+      };
+    };
+    environment?: {
+      timezone: string;
+      timezoneOffset: number;
+      languages: string[];
+      platform: string;
+      cookieEnabled: boolean;
+      plugins: Array<{
+        name: string;
+        description: string;
+        filename: string;
+      }>;
+    };
+    headlessDetection?: {
+      confidence: number;
+      indicators: string[];
+      browserEngine: string;
+      automationFramework?: string;
+    };
+  };
+  
   geo?: {
     country: string;
     region: string;
@@ -57,6 +116,21 @@ export class CloakerService {
     try {
       // Extract visitor information
       const visitorInfo = await this.extractVisitorInfo(request);
+      
+      // Check IP blacklist with threat intelligence
+      const blacklistService = new BlacklistService(getDb(), null as any, new CacheService());
+      const isBlacklisted = await blacklistService.isBlacklisted(visitorInfo.ip);
+      
+      if (isBlacklisted) {
+        return {
+          decision: 'safe',
+          reason: 'IP blacklisted',
+          campaignId: campaignSlug,
+          redirectUrl: '/404',
+          redirectType: '302',
+          processingTime: Date.now() - startTime,
+        };
+      }
       
       // Get campaign information
       const campaign = await this.getCampaign(campaignSlug);
@@ -130,21 +204,48 @@ export class CloakerService {
     // Get geolocation
     const geo = geoip.lookup(ip);
     
-    // Generate fingerprint hash
-    const fingerprintData = [
+    // Extract advanced fingerprint from request body (if POST)
+    let advancedFingerprint;
+    if (request.method === 'POST' && request.body) {
+      const body = request.body as any;
+      if (body.fingerprint) {
+        advancedFingerprint = body.fingerprint;
+      }
+    }
+    
+    // Generate enhanced fingerprint hash
+    const basicFingerprintData = [
       ip,
       userAgent,
       request.headers['accept-language'],
       request.headers['accept-encoding'],
       request.headers['accept'],
     ].join('|');
+    
+    // Include advanced fingerprint data if available
+    let fingerprintData = basicFingerprintData;
+    if (advancedFingerprint) {
+      const advancedData = [
+        advancedFingerprint.canvas?.hash || '',
+        advancedFingerprint.webgl?.hash || '',
+        advancedFingerprint.audio?.contextHash || '',
+        advancedFingerprint.screen?.resolution || '',
+        advancedFingerprint.device?.hardwareConcurrency?.toString() || '',
+      ].join('|');
+      fingerprintData = `${basicFingerprintData}::${advancedData}`;
+    }
+    
     const fingerprintHash = createHash('md5').update(fingerprintData).digest('hex');
     
-    // Extract relevant headers
+    // Extract relevant headers (expanded for bot detection)
     const headers: Record<string, string> = {};
     const relevantHeaders = [
       'accept', 'accept-language', 'accept-encoding',
       'dnt', 'connection', 'upgrade-insecure-requests',
+      'x-forwarded-for', 'x-real-ip', 'via', 'forwarded',
+      'sec-ch-ua', 'sec-ch-ua-mobile', 'sec-ch-ua-platform',
+      'sec-fetch-dest', 'sec-fetch-mode', 'sec-fetch-site',
+      'cache-control', 'pragma', 'authorization'
     ];
     for (const header of relevantHeaders) {
       if (request.headers[header]) {
@@ -158,6 +259,7 @@ export class CloakerService {
       referer,
       headers,
       fingerprintHash,
+      advancedFingerprint,
       geo: geo ? {
         country: geo.country,
         region: geo.region,

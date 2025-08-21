@@ -2,6 +2,8 @@ import { VisitorInfo } from './cloaker.service';
 import { CacheService } from './redis.service';
 import { config } from '../config';
 import axios from 'axios';
+import { getThreatIntelligenceService } from './threatIntelligence.service';
+import { getCacheService } from './cache.service';
 
 export interface BotDetectionResult {
   isBot: boolean;
@@ -12,10 +14,14 @@ export interface BotDetectionResult {
     behaviorScore: number;
     networkScore: number;
     fingerprintScore: number;
+    headlessScore?: number;
+    threatIntelScore?: number;
   };
 }
 
 export class BotDetectionService {
+  private threatIntelligence = getThreatIntelligenceService(getCacheService());
+  
   private static readonly BOT_USER_AGENTS = [
     'bot', 'crawler', 'spider', 'scraper', 'curl', 'wget',
     'python', 'java', 'ruby', 'perl', 'php', 'go-http',
@@ -58,6 +64,7 @@ export class BotDetectionService {
           behaviorScore: 0,
           networkScore: 0,
           fingerprintScore: 0,
+          headlessScore: 0,
         },
       };
     }
@@ -75,19 +82,25 @@ export class BotDetectionService {
       headerScore,
       networkScore,
       fingerprintScore,
+      headlessScore,
+      threatIntelScore,
     ] = await Promise.all([
       this.checkUserAgent(visitorInfo),
       this.checkHeaders(visitorInfo),
       this.checkNetwork(visitorInfo),
       this.checkFingerprint(visitorInfo),
+      this.checkHeadlessBrowser(visitorInfo),
+      this.checkThreatIntelligence(visitorInfo.ip),
     ]);
 
-    // Calculate combined score
+    // Calculate combined score with threat intelligence
     const totalScore = (
-      userAgentScore * 0.3 +
-      headerScore * 0.2 +
-      networkScore * 0.3 +
-      fingerprintScore * 0.2
+      userAgentScore * 0.2 +
+      headerScore * 0.15 +
+      networkScore * 0.2 +
+      fingerprintScore * 0.15 +
+      headlessScore * 0.15 +
+      threatIntelScore * 0.15
     );
 
     const isBot = totalScore >= config.botDetection.threshold;
@@ -99,6 +112,8 @@ export class BotDetectionService {
         { name: 'Headers', score: headerScore },
         { name: 'Network', score: networkScore },
         { name: 'Fingerprint', score: fingerprintScore },
+        { name: 'Headless Browser', score: headlessScore },
+        { name: 'Threat Intelligence', score: threatIntelScore },
       ];
       const highest = scores.reduce((a, b) => a.score > b.score ? a : b);
       reason = `${highest.name} anomaly detected`;
@@ -113,6 +128,8 @@ export class BotDetectionService {
         behaviorScore: 0, // Will be updated from ML service
         networkScore,
         fingerprintScore,
+        headlessScore,
+        threatIntelScore,
       },
     };
 
@@ -229,6 +246,103 @@ export class BotDetectionService {
     // This would normally be checked client-side
     
     return Math.min(score, 1.0);
+  }
+
+  private async checkHeadlessBrowser(visitorInfo: VisitorInfo): Promise<number> {
+    let score = 0;
+
+    // Check for headless indicators in user agent
+    const userAgent = visitorInfo.userAgent.toLowerCase();
+    if (
+      userAgent.includes('headless') ||
+      userAgent.includes('phantomjs') ||
+      userAgent.includes('slimerjs') ||
+      userAgent.includes('htmlunit')
+    ) {
+      score += 0.9;
+    }
+
+    // Check for missing expected headers
+    const hasAccept = !!visitorInfo.headers['accept'];
+    const hasAcceptLanguage = !!visitorInfo.headers['accept-language'];
+    const hasAcceptEncoding = !!visitorInfo.headers['accept-encoding'];
+
+    if (!hasAccept || !hasAcceptLanguage || !hasAcceptEncoding) {
+      score += 0.4;
+    }
+
+    // Check for automation framework indicators
+    const headers = visitorInfo.headers;
+    const automationHeaders = [
+      'webdriver-active',
+      'x-chrome-connected',
+      'x-devtools-emulate-network-conditions-client-id',
+    ];
+
+    for (const header of automationHeaders) {
+      if (header in headers) {
+        score += 0.3;
+      }
+    }
+
+    // Check advanced fingerprint if available
+    if (visitorInfo.advancedFingerprint) {
+      const fp = visitorInfo.advancedFingerprint;
+      
+      // Check for headless detection results
+      if (fp.headlessDetection) {
+        score += fp.headlessDetection.confidence * 0.8;
+      }
+
+      // Check for missing plugins (common in headless)
+      if (fp.environment?.plugins && fp.environment.plugins.length === 0) {
+        score += 0.3;
+      }
+
+      // Check for suspicious WebGL renderer
+      if (fp.webgl?.renderer) {
+        const renderer = fp.webgl.renderer.toLowerCase();
+        if (
+          renderer.includes('swiftshader') ||
+          renderer.includes('mesa offscreen') ||
+          renderer.includes('brian paul')
+        ) {
+          score += 0.4;
+        }
+      }
+
+      // Check timezone anomalies
+      if (fp.environment?.timezone === 'UTC') {
+        score += 0.2;
+      }
+
+      // Check for default language only
+      if (
+        fp.environment?.languages &&
+        fp.environment.languages.length === 1 &&
+        fp.environment.languages[0] === 'en-US'
+      ) {
+        score += 0.2;
+      }
+    }
+
+    return Math.min(score, 1.0);
+  }
+
+  private async checkThreatIntelligence(ipAddress: string): Promise<number> {
+    try {
+      const threatResult = await this.threatIntelligence.analyzeIP(ipAddress);
+      
+      if (threatResult.isMalicious) {
+        // Convert confidence percentage to score (0-1)
+        return Math.min(threatResult.confidence / 100, 1.0);
+      }
+      
+      return 0;
+    } catch (error) {
+      console.warn('Threat intelligence check failed in bot detection:', error);
+      return 0;
+    }
   }
 
   private isDatacenterIP(ip: string): boolean {
