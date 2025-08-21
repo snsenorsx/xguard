@@ -1,0 +1,44 @@
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { useAuthStore } from '@/store/authStore'
+import { MainLayout } from '@/components/layouts/MainLayout'
+import { AuthLayout } from '@/components/layouts/AuthLayout'
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+
+// Pages
+import { LoginPage } from '@/pages/auth/LoginPage'
+import { RegisterPage } from '@/pages/auth/RegisterPage'
+import { DashboardPage } from '@/pages/DashboardPage'
+import { CampaignsPage } from '@/pages/campaigns/CampaignsPage'
+import { CampaignDetailPage } from '@/pages/campaigns/CampaignDetailPage'
+import { AnalyticsPage } from '@/pages/AnalyticsPage'
+import { SettingsPage } from '@/pages/SettingsPage'
+
+function App() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+
+  return (
+    <Routes>
+      {/* Auth routes */}
+      <Route element={<AuthLayout />}>
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <LoginPage />} />
+        <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterPage />} />
+      </Route>
+
+      {/* Protected routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<MainLayout />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/campaigns" element={<CampaignsPage />} />
+          <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Route>
+      </Route>
+
+      {/* Default redirect */}
+      <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
+    </Routes>
+  )
+}
+
+export default App
