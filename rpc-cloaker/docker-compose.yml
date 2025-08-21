@@ -61,6 +61,17 @@ services:
 
   # Redis Cluster Setup
   redis-cluster-setup:
+  # Dedicated Redis for Queues (Bull)
+  redis-queue:
+    image: redis:7-alpine
+    container_name: rpc_redis_queue
+    command: redis-server --appendonly yes
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_queue_data:/data
+    networks:
+      - rpc_network
     image: redis:7-alpine
     container_name: rpc_redis_setup
     depends_on:
@@ -95,9 +106,14 @@ services:
       DB_PASSWORD: postgres123
       TIMESCALE_DB_NAME: rpc_cloaker
       REDIS_CLUSTER_NODES: redis-node-1:7000,redis-node-2:7001,redis-node-3:7002
+      REDIS_HOST: redis-node-1
+      REDIS_PORT: 7000
       JWT_SECRET: your_super_secret_jwt_key_here_change_in_production
       ML_SERVICE_URL: http://ml-service:5000
       ML_SERVICE_API_KEY: ml_service_secret_key
+      CORS_ORIGIN: "*"
+      QUEUE_REDIS_HOST: redis-queue
+      QUEUE_REDIS_PORT: 6379
     ports:
       - "3000:3000"
     volumes:
@@ -184,3 +200,4 @@ volumes:
   redis_data_1:
   redis_data_2:
   redis_data_3:
+  redis_queue_data:
