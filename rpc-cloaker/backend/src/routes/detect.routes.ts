@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { BotDetectionService } from '../services/bot-detection.service';
+import { BotDetectionService } from '../services/bot-detection';
 import { BlacklistService } from '../services/blacklist.service';
 import { ThreatIntelligenceService } from '../services/threat-intelligence.service';
 import { FingerprintingService } from '../services/fingerprinting.service';

@@ -70,12 +70,8 @@ export interface ThreatIntelligenceConfig {
     rateLimit: number; // requests per day
     confidenceThreshold: number; // 0-100
   };
-  virusTotal: {
-    apiKey: string;
-    baseUrl: string;
-    rateLimit: number; // requests per minute
-    maliciousThreshold: number; // minimum malicious votes
-  };
+  // VirusTotal removed for performance optimization
+  // virusTotal configuration deprecated
   cache: {
     ttl: number; // seconds
     namespace: string;
@@ -154,21 +150,14 @@ export class ThreatIntelligenceService {
     try {
       const startTime = Date.now();
 
-      // Query multiple sources in parallel
-      const [abuseIPDBResult, virusTotalResult] = await Promise.allSettled([
-        this.queryAbuseIPDB(ipAddress),
-        this.queryVirusTotal(ipAddress)
-      ]);
+      // Query AbuseIPDB only (removed VirusTotal for performance)
+      const abuseIPDBResult = await this.queryAbuseIPDB(ipAddress);
 
       // Process results
       const sources: ThreatSource[] = [];
       
-      if (abuseIPDBResult.status === 'fulfilled' && abuseIPDBResult.value) {
-        sources.push(this.processAbuseIPDBResult(abuseIPDBResult.value));
-      }
-
-      if (virusTotalResult.status === 'fulfilled' && virusTotalResult.value) {
-        sources.push(this.processVirusTotalResult(virusTotalResult.value));
+      if (abuseIPDBResult) {
+        sources.push(this.processAbuseIPDBResult(abuseIPDBResult));
       }
 
       // Calculate overall threat assessment
