@@ -10,6 +10,7 @@ export { NetworkAnalyzer } from './analyzers/network.analyzer';
 export { FingerprintAnalyzer } from './analyzers/fingerprint.analyzer';
 export { HeadlessDetector } from './detectors/headless.detector';
 export { BehaviorAnalyzer } from './analyzers/behavior.analyzer';
+export { getBotDetectionService } from './instance';
 
 export type {
   BotDetectionResult,

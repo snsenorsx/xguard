@@ -32,6 +32,30 @@ interface DatabaseInterface {
 }
 
 export class BlacklistService {
+  private static instance: BlacklistService;
+
+  static getInstance(): BlacklistService {
+    if (!this.instance) {
+      const { getDb } = require('../database');
+      const { getRedis } = require('./redis.service');
+      const { getCacheService } = require('./cache.service');
+      
+      this.instance = new BlacklistService(
+        getDb(),
+        getRedis(),
+        getCacheService()
+      );
+    }
+    return this.instance;
+  }
+
+  static async checkIP(ipAddress: string) {
+    return this.getInstance().checkIP(ipAddress);
+  }
+
+  static async healthCheck() {
+    return { status: 'healthy', service: 'blacklist' };
+  }
   private db: DatabaseInterface;
   private redis: Redis;
   private cachePrefix = 'blacklist:';
@@ -41,7 +65,7 @@ export class BlacklistService {
   constructor(db: DatabaseInterface, redis: Redis, cacheService: any) {
     this.db = db;
     this.redis = redis;
-    this.threatIntelligence = getThreatIntelligenceService(cacheService);
+    this.threatIntelligence = getThreatIntelligenceService();
   }
 
   /**

@@ -40,7 +40,7 @@ export class UserAgentAnalyzer {
 
     // Check for outdated browsers
     if (browserInfo.name && browserInfo.version) {
-      const minVersion = BROWSER_VERSIONS[browserInfo.name]?.min;
+      const minVersion = BROWSER_VERSIONS[browserInfo.name as keyof typeof BROWSER_VERSIONS]?.min;
       if (minVersion && browserInfo.version < minVersion) {
         flags.push(`outdated_${browserInfo.name}_v${browserInfo.version}`);
         score = Math.max(score, 0.6);

@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
-import { BotDetectionService } from '../services/bot-detection';
+import { getBotDetectionService } from '../services/bot-detection';
 import { BlacklistService } from '../services/blacklist.service';
-import { ThreatIntelligenceService } from '../services/threat-intelligence.service';
+import { getThreatIntelligenceService } from '../services/threat-intelligence';
 import { FingerprintingService } from '../services/fingerprinting.service';
 import { TrafficLogService } from '../services/traffic-log.service';
 
@@ -38,6 +38,9 @@ interface DetectResponse {
 }
 
 export default async function detectRoutes(server: FastifyInstance) {
+  const botDetectionService = getBotDetectionService();
+  const threatIntelligenceService = getThreatIntelligenceService();
+
   server.post<{ Body: DetectRequestBody }>('/detect', {
     schema: {
       body: {
@@ -111,9 +114,9 @@ export default async function detectRoutes(server: FastifyInstance) {
         threatCheck,
         fingerprintAnalysis
       ] = await Promise.all([
-        BotDetectionService.detect(requestContext),
-        BlacklistService.checkIp(ipAddress),
-        ThreatIntelligenceService.analyzeIp(ipAddress),
+        botDetectionService.detect(requestContext),
+        BlacklistService.checkIP(ipAddress),
+        threatIntelligenceService.analyzeIP(ipAddress),
         fingerprint ? FingerprintingService.analyze(fingerprint) : Promise.resolve(null)
       ]);
       
@@ -129,10 +132,10 @@ export default async function detectRoutes(server: FastifyInstance) {
         confidence = 1.0;
       }
       // Check threat intelligence
-      else if (threatCheck.isThreat && threatCheck.confidence > 0.75) {
+      else if (threatCheck.isThreat && threatCheck.confidence > 75) {
         decision = 'block';
         reason = `Threat detected: ${threatCheck.reason}`;
-        confidence = threatCheck.confidence;
+        confidence = threatCheck.confidence / 100;
       }
       // Check bot detection
       else if (botDetection.isBot && botDetection.confidence > 0.8) {
@@ -170,7 +173,7 @@ export default async function detectRoutes(server: FastifyInstance) {
           isBot: botDetection.isBot,
           botConfidence: botDetection.confidence,
           isThreat: threatCheck.isThreat,
-          threatScore: threatCheck.confidence,
+          threatScore: threatCheck.confidence / 100,
           isBlacklisted: blacklistCheck.isBlacklisted,
           fingerprintScore: fingerprintAnalysis?.anomalyScore || 0,
           ...(fingerprint?.ja3 && { ja3Match: fingerprintAnalysis?.ja3Match })
@@ -195,9 +198,9 @@ export default async function detectRoutes(server: FastifyInstance) {
         blacklistHealth,
         threatHealth
       ] = await Promise.all([
-        BotDetectionService.healthCheck(),
+        botDetectionService.healthCheck(),
         BlacklistService.healthCheck(),
-        ThreatIntelligenceService.healthCheck()
+        threatIntelligenceService.healthCheck()
       ]);
       
       return {

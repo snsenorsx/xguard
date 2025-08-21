@@ -158,8 +158,42 @@ export class ThreatIntelligenceService {
   /**
    * Clear cache
    */
-  clearCache(): void {
-    this.cache.clear();
+  clearCache(ipAddress?: string): void {
+    if (ipAddress) {
+      this.cache.delete(ipAddress);
+    } else {
+      this.cache.clear();
+    }
+  }
+
+  /**
+   * Analyze multiple IPs
+   */
+  async analyzeBulkIPs(ipAddresses: string[]): Promise<ThreatIntelligenceResult[]> {
+    const results = await Promise.all(
+      ipAddresses.map(ip => this.analyzeIP(ip))
+    );
+    return results;
+  }
+
+  /**
+   * Get statistics
+   */
+  async getStatistics(): Promise<any> {
+    const cacheStats = this.cache.getStats();
+    const providerStats: any = {};
+
+    for (const [name, provider] of this.providers.entries()) {
+      if (provider.getProviderInfo) {
+        providerStats[name] = provider.getProviderInfo();
+      }
+    }
+
+    return {
+      cache: cacheStats,
+      providers: providerStats,
+      initialized: this.initialized
+    };
   }
 
   /**

@@ -10,7 +10,7 @@ export class ThreatCache {
   private ttl: number;
   private namespace: string;
   private maxSize: number;
-  private cleanupInterval: NodeJS.Timer;
+  private cleanupInterval: NodeJS.Timeout;
 
   constructor(config: {
     ttl: number;
