@@ -3,7 +3,6 @@ import { CacheService } from './redis.service';
 import { config } from '../config';
 import axios from 'axios';
 import { getThreatIntelligenceService } from './threat-intelligence';
-import { getCacheService } from './cache.service';
 
 export interface BotDetectionResult {
   isBot: boolean;
