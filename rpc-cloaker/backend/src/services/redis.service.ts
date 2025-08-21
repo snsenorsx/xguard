@@ -1,20 +1,20 @@
-import Redis from 'ioredis';
+import IORedis, { Cluster } from 'ioredis';
 import { config } from '../config';
 import { logger } from '../utils/logger';
 
-let redisClient: Redis;
-let redisCluster: Redis.Cluster | null = null;
+let redisClient: IORedis | null = null;
+let redisCluster: Cluster | null = null;
 
 export async function initializeRedis() {
   // Check if cluster mode is enabled
   if (config.redis.clusterNodes && config.redis.clusterNodes.length > 0) {
-    redisCluster = new Redis.Cluster(config.redis.clusterNodes, {
+    redisCluster = new Cluster(config.redis.clusterNodes as any, {
       redisOptions: {
         password: config.redis.password,
+        maxRetriesPerRequest: 3,
       },
       enableReadyCheck: true,
-      maxRetriesPerRequest: 3,
-    });
+    } as any);
 
     redisCluster.on('connect', () => {
       logger.info('Redis cluster connected');
@@ -27,7 +27,7 @@ export async function initializeRedis() {
     await redisCluster.ping();
   } else {
     // Single Redis instance
-    redisClient = new Redis({
+    redisClient = new IORedis({
       host: config.redis.host,
       port: config.redis.port,
       password: config.redis.password,
@@ -51,7 +51,7 @@ export async function initializeRedis() {
   }
 }
 
-export function getRedis(): Redis | Redis.Cluster {
+export function getRedis(): IORedis | Cluster {
   if (redisCluster) {
     return redisCluster;
   }

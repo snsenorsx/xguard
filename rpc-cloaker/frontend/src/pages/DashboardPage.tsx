@@ -55,7 +55,16 @@ export function DashboardPage() {
     refetchInterval: 30000, // Refresh every 30 seconds
   })
 
-  const stats = [
+  const stats: Array<{
+    title: string
+    icon: any
+    color: string
+    bgColor: string
+    value: number
+    change: number
+    suffix?: string
+    percent?: boolean
+  }> = [
     {
       ...statCards[0],
       value: overview?.totalVisits || 0,
@@ -65,7 +74,7 @@ export function DashboardPage() {
       ...statCards[1],
       value: overview?.botRate || 0,
       change: -3.2,
-      isPercent: true,
+      percent: true,
     },
     {
       ...statCards[2],
@@ -112,7 +121,7 @@ export function DashboardPage() {
               <CardContent>
                 <div className="flex items-baseline justify-between">
                   <span className="text-2xl font-bold">
-                    {stat.isPercent
+                    {stat.percent
                       ? formatPercent(stat.value)
                       : formatNumber(stat.value)}
                     {stat.suffix && ` ${stat.suffix}`}

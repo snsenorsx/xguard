@@ -72,6 +72,11 @@ export const campaignsService = {
     return data
   },
 
+  async getStreamTargeting(campaignId: string, streamId: string) {
+    const { data } = await api.get(`/campaigns/${campaignId}/streams/${streamId}/targeting`)
+    return data
+  },
+
   async createStream(campaignId: string, stream: Partial<Stream>) {
     const { data } = await api.post(`/campaigns/${campaignId}/streams`, stream)
     return data

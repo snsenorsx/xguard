@@ -15,8 +15,8 @@ const envSchema = z.object({
   TIMESCALE_DB_NAME: z.string(),
   
   // Redis
-  REDIS_HOST: z.string(),
-  REDIS_PORT: z.string().transform(Number),
+  REDIS_HOST: z.string().default('redis'),
+  REDIS_PORT: z.string().transform(Number).default('6379'),
   REDIS_PASSWORD: z.string().optional(),
   REDIS_DB: z.string().transform(Number).default('0'),
   REDIS_CLUSTER_NODES: z.string().optional(),
@@ -27,7 +27,7 @@ const envSchema = z.object({
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
   
   // CORS
-  CORS_ORIGIN: z.string(),
+  CORS_ORIGIN: z.string().default('*'),
   
   // Logging
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),

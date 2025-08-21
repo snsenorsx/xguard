@@ -3,6 +3,7 @@ import { useAuthStore } from '@/store/authStore'
 import { MainLayout } from '@/components/layouts/MainLayout'
 import { AuthLayout } from '@/components/layouts/AuthLayout'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { AdminRoute } from '@/components/auth/AdminRoute'
 
 // Pages
 import { LoginPage } from '@/pages/auth/LoginPage'
@@ -12,6 +13,8 @@ import { CampaignsPage } from '@/pages/campaigns/CampaignsPage'
 import { CampaignDetailPage } from '@/pages/campaigns/CampaignDetailPage'
 import { AnalyticsPage } from '@/pages/AnalyticsPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage'
+import { TargetingPage } from '@/pages/targeting/TargetingPage'
 
 function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -30,8 +33,16 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/campaigns" element={<CampaignsPage />} />
           <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
+          <Route path="/campaigns/:id/streams/:streamId/targeting" element={<TargetingPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+        </Route>
+      </Route>
+
+      {/* Admin routes */}
+      <Route element={<AdminRoute />}>
+        <Route element={<MainLayout />}>
+          <Route path="/admin" element={<AdminDashboardPage />} />
         </Route>
       </Route>
 

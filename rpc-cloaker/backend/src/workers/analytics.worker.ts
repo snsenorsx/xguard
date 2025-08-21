@@ -3,14 +3,14 @@ import { getTimescaleDb } from '../database';
 import { logger } from '../utils/logger';
 
 export async function analyticsWorker(job: Bull.Job) {
-  const { type, data } = job.data;
+  const jobName = job.name;
   
-  switch (type) {
+  switch (jobName) {
     case 'aggregate-stats':
       await aggregateStats();
       break;
     default:
-      logger.warn(`Unknown analytics job type: ${type}`);
+      logger.warn(`Unknown analytics job type: ${jobName}`);
   }
 }
 

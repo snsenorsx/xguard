@@ -59,40 +59,16 @@ async function scheduleRecurringJobs() {
   const cleanupQueue = queues.get('cleanup');
   if (cleanupQueue) {
     // Run cleanup every hour
-    await cleanupQueue.add(
-      'cleanup-old-data',
-      {},
-      {
-        repeat: {
-          cron: '0 * * * *', // Every hour
-        },
-      }
-    );
+    await cleanupQueue.add('cleanup-old-data', {}, { repeat: { cron: '0 * * * *' } });
     
     // Run partition maintenance daily
-    await cleanupQueue.add(
-      'partition-maintenance',
-      {},
-      {
-        repeat: {
-          cron: '0 2 * * *', // 2 AM daily
-        },
-      }
-    );
+    await cleanupQueue.add('partition-maintenance', {}, { repeat: { cron: '0 2 * * *' } });
   }
   
   const analyticsQueue = queues.get('analytics');
   if (analyticsQueue) {
     // Aggregate stats every 5 minutes
-    await analyticsQueue.add(
-      'aggregate-stats',
-      {},
-      {
-        repeat: {
-          every: 5 * 60 * 1000, // 5 minutes
-        },
-      }
-    );
+    await analyticsQueue.add('aggregate-stats', {}, { repeat: { every: 5 * 60 * 1000 } });
   }
 }
 
