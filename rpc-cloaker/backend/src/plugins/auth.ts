@@ -8,11 +8,7 @@ interface JWTPayload {
   role: string;
 }
 
-declare module 'fastify' {
-  interface FastifyRequest {
-    user?: JWTPayload;
-  }
-}
+// Avoid augmenting FastifyRequest built-ins to prevent conflicts
 
 async function authPlugin(fastify: FastifyInstance) {
   fastify.decorate('authenticate', async function (
@@ -20,12 +16,15 @@ async function authPlugin(fastify: FastifyInstance) {
     reply: FastifyReply
   ) {
     try {
-      const token = request.headers.authorization?.replace('Bearer ', '');
-      if (!token) {
+      const authHeader = request.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return reply.code(401).send({ error: 'Missing authentication token' });
       }
 
-      const decoded = await request.jwtVerify<JWTPayload>();
+      const decoded = await request.jwtVerify<JWTPayload>().catch(() => null);
+      if (!decoded) {
+        return reply.code(401).send({ error: 'Invalid authentication token' });
+      }
       
       // Verify user still exists and is active
       const db = getDb();
@@ -38,7 +37,7 @@ async function authPlugin(fastify: FastifyInstance) {
         return reply.code(401).send({ error: 'Invalid authentication' });
       }
 
-      request.user = {
+      (request as any).currentUser = {
         id: result.rows[0].id,
         email: result.rows[0].email,
         role: result.rows[0].role,
@@ -53,11 +52,12 @@ async function authPlugin(fastify: FastifyInstance) {
       request: FastifyRequest,
       reply: FastifyReply
     ) {
-      if (!request.user) {
+      const user = (request as any).currentUser as JWTPayload | undefined;
+      if (!user) {
         return reply.code(401).send({ error: 'Authentication required' });
       }
 
-      if (!roles.includes(request.user.role)) {
+      if (!roles.includes(user.role)) {
         return reply.code(403).send({ error: 'Insufficient permissions' });
       }
     };

@@ -14,8 +14,8 @@ async function rateLimitPlugin(fastify: FastifyInstance) {
     const max = options.max || config.rateLimit.max;
     const timeWindow = options.timeWindow || config.rateLimit.timeWindow;
     const keyGenerator = options.keyGenerator || ((req: FastifyRequest) => {
-      const user = req.user?.id || 'anonymous';
-      return `${req.ip}:${user}`;
+      const userId = (req as any).currentUser?.id || 'anonymous';
+      return `${req.ip}:${userId}`;
     });
 
     return async function (
