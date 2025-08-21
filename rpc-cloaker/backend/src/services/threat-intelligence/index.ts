@@ -8,6 +8,7 @@ export { AbuseIPDBProvider } from './providers/abuseipdb.provider';
 export { IPAnalyzer } from './analyzers/ip.analyzer';
 export { ThreatScorer } from './scorers/threat.scorer';
 export { ThreatCache } from './cache/threat.cache';
+export { getThreatIntelligenceService } from './instance';
 
 export type {
   ThreatIntelligenceResult,
