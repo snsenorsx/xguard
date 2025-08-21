@@ -2,20 +2,20 @@ import { FastifyInstance } from 'fastify';
 
 export async function initializeRoutes(server: FastifyInstance) {
   // Health check
-  server.get('/health', async (request, reply) => {
+  server.get('/health', async () => {
     return { status: 'ok', timestamp: new Date().toISOString() };
   });
 
   // API routes
-  await server.register(import('./auth.routes'), { prefix: '/api/auth' });
-  await server.register(import('./campaigns.routes'), { prefix: '/api/campaigns' });
-  await server.register(import('./analytics.routes'), { prefix: '/api/analytics' });
-  await server.register(import('./cloaker.routes'), { prefix: '/api/cloaker' });
-  await server.register(import('./users.routes'), { prefix: '/api/users' });
+  await server.register(import('./routes.auth'), { prefix: '/api/auth' });
+  await server.register(import('./routes.campaigns'), { prefix: '/api/campaigns' });
+  await server.register(import('./routes.analytics'), { prefix: '/api/analytics' });
+  await server.register(import('./routes.cloaker'), { prefix: '/api/cloaker' });
+  await server.register(import('./routes.users'), { prefix: '/api/users' });
   
   // WebSocket routes
-  await server.register(import('./ws.routes'), { prefix: '/ws' });
+  await server.register(import('./routes.ws'), { prefix: '/ws' });
   
   // Public cloaking endpoint (no prefix)
-  await server.register(import('./public.routes'));
+  await server.register(import('./routes.public'));
 }

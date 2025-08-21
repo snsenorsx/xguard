@@ -38,6 +38,8 @@ RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=builder /app/dist ./dist
 
 # Copy database scripts
+# Copy database scripts
+RUN mkdir -p ./src/database
 COPY src/database/*.sql ./src/database/
 
 # Create logs directory
