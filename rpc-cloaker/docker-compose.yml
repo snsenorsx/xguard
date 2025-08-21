@@ -141,7 +141,7 @@ services:
       SERVICE_PORT: 5000
       API_KEY: ml_service_secret_key
       DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/rpc_cloaker
-      REDIS_URL: redis://redis-node-1:7000
+      REDIS_URL: redis://redis-queue:6379/1
       MODEL_PATH: /app/models
       MLFLOW_TRACKING_URI: file:///app/mlruns
     volumes:

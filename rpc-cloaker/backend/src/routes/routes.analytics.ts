@@ -69,13 +69,15 @@ export default async function analyticsRoutes(server: FastifyInstance) {
     const avgResponseTime = parseFloat(totals.rows[0]?.avg_resp || '0');
     const botRate = totalVisits > 0 ? (totalBots / totalVisits) * 100 : 0;
 
+    // Unique visitors from traffic_logs if available in main DB; fallback to approx by visitor fingerprint in tags
+    // For now, set to humans count as a placeholder
     return {
       totalVisits,
       totalBots,
       totalHumans,
       botRate,
       avgResponseTime,
-      uniqueVisitors: 0, // Optional: add from distinct visitor_id in traffic_logs if needed
+      uniqueVisitors: totalHumans,
       topCountries: topCountries.rows.map(r => ({ country: r.country || 'Unknown', count: parseInt(r.count, 10) })),
       topDevices: topDevices.rows.map(r => ({ device: r.device || 'Unknown', count: parseInt(r.count, 10) })),
       topBrowsers: topBrowsers.rows.map(r => ({ browser: r.browser || 'Unknown', count: parseInt(r.count, 10) })),
@@ -101,8 +103,9 @@ export default async function analyticsRoutes(server: FastifyInstance) {
     if (campaignId) params.push(campaignId);
 
     const metricFilter = metric === 'requests' ? "metric_type = 'page_view'" : "metric_type = 'page_view'";
+    const bucket = interval === '1m' ? "1 minute" : interval === '1h' ? "1 hour" : "1 day";
     const result = await tsDb.query(
-      `SELECT time_bucket($interval$${interval}$interval$, time) as time, COUNT(*) as value
+      `SELECT time_bucket(interval '${bucket}', time) as time, COUNT(*) as value
        FROM metrics
        WHERE ${metricFilter} AND time BETWEEN $1 AND $2 ${whereCampaign}
        GROUP BY time
